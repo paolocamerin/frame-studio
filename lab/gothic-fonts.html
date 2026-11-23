@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gothic font candidates</title>
+<!--
+  Candidate gothic pixel fonts for the gothic page's times, in the real arches.
+  Arch 1: Jacquard 12 at 42px (2×, what the page uses now)
+  Arch 2: Jacquard 12 at 21px (1×)
+  Arch 3: Jacquard 24 at 43px (1×; its grid is 43 px/em)
+  Arch 4: Jacquarda Bastarda 9 at 26px (2×; its grid is 13 px/em)
+  Rose, top to bottom: "now later" in Jacquard 12 21px, Jacquard 24 43px,
+  Jacquarda Bastarda 9 13px and 26px.
+  Render: node scripts/screenshot.js http://127.0.0.1:8081/lab/gothic-fonts.html out.png
+-->
+<style>
+@font-face { font-family: 'Jacquard 12'; src: url(../fonts/Jacquard12-Regular.ttf); }
+@font-face { font-family: 'Jacquard 24'; src: url(fonts/Jacquard24-Regular.ttf); }
+@font-face { font-family: 'Jacquarda Bastarda 9'; src: url(../fonts/JacquardaBastarda9-Regular.ttf); }
+html, body { margin: 0; background: #fff; }
+.page { position: relative; width: 480px; height: 800px; overflow: hidden; }
+.page img { position: absolute; left: 10px; top: 46px; }
+.col { position: absolute; width: 80px; margin-left: -40px; text-align: center; line-height: var(--lh); white-space: nowrap; }
+.col div { height: var(--lh); }
+.j12 { font-family: 'Jacquard 12'; }
+.j24 { font-family: 'Jacquard 24'; }
+.jb9 { font-family: 'Jacquarda Bastarda 9'; }
+.head { position: absolute; width: 80px; margin-left: -40px; text-align: center; font: 42px/42px 'Jacquard 12'; }
+.rose { position: absolute; left: 240px; width: 160px; margin-left: -80px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="page">
+    <img src="../art/window.png" width="460" height="704" alt="">
+    <div class="head" style="left:94px;top:340px">17</div>
+    <div class="head" style="left:194px;top:340px">17</div>
+    <div class="head" style="left:286px;top:340px">30</div>
+    <div class="head" style="left:386px;top:340px">12</div>
+    <div class="col j12" style="left:94px;top:388px;font-size:42px;--lh:32px" id="c1"></div>
+    <div class="col j12" style="left:194px;top:392px;font-size:21px;--lh:28px" id="c2"></div>
+    <div class="col j24" style="left:286px;top:384px;font-size:43px;--lh:32px" id="c3"></div>
+    <div class="col jb9" style="left:386px;top:390px;font-size:26px;--lh:28px" id="c4"></div>
+    <div class="rose j12" style="top:138px;font-size:21px;line-height:21px">now later</div>
+    <div class="rose j24" style="top:160px;font-size:43px;line-height:43px">now later</div>
+    <div class="rose jb9" style="top:206px;font-size:13px;line-height:13px">now later</div>
+    <div class="rose jb9" style="top:222px;font-size:26px;line-height:26px">now later</div>
+</div>
+<script>
+const TIMES = ['18:51', '19:05', '20:35', '07:47', '14:47', '23:40', '20:44', '21:10', '22:20'];
+for (const id of ['c1', 'c2', 'c3', 'c4']) {
+    document.getElementById(id).innerHTML = TIMES.map((t) => `<div>${t}</div>`).join('');
+}
+</script>
+</body>
+</html>

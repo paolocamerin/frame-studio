@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame studio</title>
+<link rel="icon" href="data:,">
+<!--
+  Everything for working on the frame's look, in one place, on the preview server:
+    Frame   the rendered pages inside a copy of the frame (case, passe-partout cut to
+            --mat-*, buttons at --btn-*-x), reduced to black/white/red like the Zero does
+            and shown in e-ink colours. The orange buttons switch pages like the real ones.
+    Etch    web/etch.js on the gothic page, live in this browser, with sliders.
+    Guides  a drawing guide over the artwork (button lines, drop boxes, mat edge, module
+            grid), shown on the frame and exported as a PNG for Procreate.
+
+  Static copy: `npm run studio` builds it into ../frame-studio for GitHub Pages and fills
+  in the meta tag below with the folder of saved data (the tests' anonymised recordings).
+  Then there's no server: every page is drawn here in the browser, with the same code.
+-->
+<meta name="studio-data" content="../data/">
+<link rel="stylesheet" href="../dashboard.css">
+<style>
+:root {
+    /* The physical frame: wall, 3D-printed case, cream passe-partout, orange buttons. */
+    --wall: #a7b5c6;
+    --case: #8f908a;
+    --case-edge: #7b7c76;
+    --mat: #ece7da;
+    --button: #f28a2e;
+    --button-top: #ffa552;
+    --button-low: #d9721d;
+
+    /* The panel: the mat's cream, a little lighter, with the case's greys for text. */
+    --sheet: #f4f1e8;
+    --sheet-raised: #fbfaf5;
+    --ink: #2e2d2b;
+    --muted: #7a776f;
+    --rule: rgba(46, 45, 43, .12);
+    --well: rgba(46, 45, 43, .06);
+    --accent: var(--button);
+
+    /* Case proportions, in panel pixels (0.2 mm each), estimated from photos. */
+    --mat-border: 64px;
+    --mat-border-bottom: 68px;
+    --case-border: 50px;
+    --case-border-y: 52px;
+}
+html, body { height: 100%; margin: 0; background: var(--wall); }
+body {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    height: 100vh;
+    overflow: hidden;
+    font: 400 13px/1.45 system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+}
+
+/* ── Panel ─────────────────────────────────────────────── */
+.sheet {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--sheet);
+    border-right: 1px solid var(--rule);
+    box-shadow: 1px 0 0 rgba(255, 255, 255, .5) inset;
+}
+.sheet header { padding: 22px 22px 14px; }
+.mark { font: 400 42px/1 'Jacquard 12', serif; letter-spacing: 0; color: var(--ink); }
+.status { margin-top: 6px; color: var(--muted); font-variant-numeric: tabular-nums; min-height: 1.45em; }
+
+.tabs { display: flex; gap: 2px; margin: 0 22px; padding: 3px; background: var(--well); border-radius: 8px; }
+.tabs button {
+    flex: 1; padding: 6px 0; border: 0; border-radius: 6px; background: none;
+    font: 600 12px/1 system-ui, sans-serif; letter-spacing: .02em; color: var(--muted); cursor: pointer;
+}
+.tabs button[aria-selected="true"] { background: var(--sheet-raised); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+
+.pane { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 22px 28px; }
+.pane[hidden], .pane [hidden] { display: none !important; }
+.group { padding: 16px 0 4px; border-bottom: 1px solid var(--rule); display: grid; gap: 12px; }
+.group:last-child { border-bottom: 0; }
+.group h2 { margin: 0; font: 600 11px/1 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.group p, .group li { margin: 0; color: var(--muted); }
+.group ol { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.body { display: grid; gap: 12px; transition: opacity .15s; }
+.body[aria-disabled="true"] { opacity: .4; }
+
+/* Toggle: a small pill, orange when on. */
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; font-weight: 550; }
+.toggle input { appearance: none; flex: none; width: 30px; height: 18px; margin: 0; border-radius: 9px; background: rgba(46, 45, 43, .2); position: relative; cursor: pointer; transition: background .15s; }
+.toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s; }
+.toggle input:checked { background: var(--accent); }
+.toggle input:checked::after { transform: translateX(12px); }
+.toggle input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* Slider with its value. */
+.slider { display: grid; gap: 4px; }
+.slider .slider-head { display: flex; justify-content: space-between; gap: 8px; }
+.slider output { font-variant-numeric: tabular-nums; color: var(--muted); }
+.slider small, .note { color: var(--muted); font-size: 12px; }
+input[type=range] { width: 100%; margin: 2px 0; accent-color: var(--accent); }
+
+/* Segmented choice (radio buttons). */
+.segments { display: flex; gap: 2px; padding: 3px; background: var(--well); border-radius: 7px; }
+.segments label { flex: 1; }
+.segments input { position: absolute; opacity: 0; pointer-events: none; }
+.segments span { display: block; padding: 5px 0; border-radius: 5px; text-align: center; font-size: 12px; color: var(--muted); cursor: pointer; }
+.segments input:checked + span { background: var(--sheet-raised); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.segments input:focus-visible + span { outline: 2px solid var(--ink); }
+.field { display: grid; gap: 4px; }
+select, input[type=text] { font: inherit; padding: 5px 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet-raised); color: var(--ink); }
+
+.buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { font: 600 12px/1 system-ui, sans-serif; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet-raised); color: var(--ink); cursor: pointer; }
+.btn:hover { background: #fff; }
+.btn.primary { border-color: transparent; color: #fff; background: linear-gradient(var(--button-top), var(--button) 45%, var(--button-low)); box-shadow: 0 1px 0 rgba(0, 0, 0, .2); }
+code.settings { display: block; padding: 8px 10px; background: var(--well); border-radius: 6px; font-size: 11px; line-height: 1.5; word-break: break-all; user-select: all; }
+
+.legend { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; margin: 0; }
+.legend dt { width: 18px; height: 18px; border-radius: 5px 5px 2px 2px; background: linear-gradient(var(--button-top), var(--button) 45%, var(--button-low)); color: #fff; font: 700 10px/18px system-ui, sans-serif; text-align: center; }
+.legend dd { margin: 0; color: var(--muted); align-self: center; }
+
+.sheet footer { padding: 10px 22px 14px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 11px; }
+
+/* ── Wall and frame ────────────────────────────────────── */
+.wall {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    min-width: 0;
+    background:
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .18 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>"),
+        var(--wall);
+}
+.wall.zoomed { overflow: auto; }
+.stage { display: grid; justify-items: center; gap: 22px; }
+.wall:not(.zoomed) .stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.wall.zoomed .stage { margin: auto; padding: 40px; }
+
+.case {
+    position: relative;
+    padding: var(--case-border-y) var(--case-border);
+    background:
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .22 0'/></filter><rect width='120' height='120' filter='url(%23n)'/></svg>"),
+        var(--case);
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 2px var(--case-edge), inset 3px 3px 0 rgba(255, 255, 255, .12), 18px 26px 40px rgba(20, 30, 45, .35), 6px 8px 10px rgba(20, 30, 45, .25);
+}
+.mount { position: relative; }
+.panel { position: absolute; display: block; width: 480px; height: 800px; border: 0; background: rgb(211, 210, 202); }
+.panel[hidden] { display: none; }
+/* The live page in e-ink colours: maps black, white and red exactly to the colours below. */
+iframe.panel { filter: url(#eink); pointer-events: none; }
+/* Off-tab, the live page stays laid out (just invisible): hidden with display: none, the
+   browser doesn't lay it out, so its re-renders measure text as 0 wide and read no sizes. */
+iframe.panel.off { visibility: hidden; }
+.guide { position: absolute; pointer-events: none; }
+.guide[hidden] { display: none; }
+.mat {
+    position: relative;
+    box-sizing: content-box;
+    border: solid var(--mat);
+    border-width: var(--mat-border) var(--mat-border) var(--mat-border-bottom);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .18), inset 2px 3px 4px rgba(0, 0, 0, .22), 0 0 0 1px rgba(0, 0, 0, .25), 2px 2px 4px rgba(0, 0, 0, .25);
+    transition: border-color .2s;
+    pointer-events: none;
+}
+.reveal .mat { border-color: rgba(236, 231, 218, .55); }
+.zoomed .panel, .zoomed .guide { image-rendering: pixelated; }
+
+/* Standing on the case's top edge (their bottom at its top), centred on --btn-*-x. */
+.hw {
+    position: absolute; top: -16px; width: 34px; height: 16px; margin-left: -17px; padding: 0; border: 0;
+    border-radius: 5px 5px 2px 2px; background: linear-gradient(var(--button-top), var(--button) 45%, var(--button-low));
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .3); cursor: pointer;
+}
+.hw:active { top: -12px; height: 12px; }
+.hw:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+.caption { margin: 0; padding: 5px 12px; border-radius: 12px; background: rgba(244, 241, 232, .75); color: var(--ink); font-size: 12px; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <!-- Black, white and red to the e-ink colours [38,35,44], [211,210,202], [178,72,58]. -->
+    <filter id="eink" color-interpolation-filters="sRGB">
+        <feColorMatrix type="matrix" values="
+            0.549 0.065 0.065 0 0.149
+            0.145 0.271 0.271 0 0.137
+            0.055 0.282 0.282 0 0.173
+            0 0 0 1 0"/>
+    </filter>
+</svg>
+
+<aside class="sheet">
+    <header>
+        <div class="mark">Frame studio</div>
+        <div class="status" id="status">Loading…</div>
+    </header>
+    <nav class="tabs" role="tablist">
+        <button type="button" role="tab" data-tab="frame">Frame</button>
+        <button type="button" role="tab" data-tab="etch">Etch</button>
+        <button type="button" role="tab" data-tab="guides">Guides</button>
+    </nav>
+
+    <!-- Frame -->
+    <form class="pane" data-pane="frame" id="frameForm">
+        <div class="group">
+            <h2>Page</h2>
+            <div class="segments">
+                <label><input type="radio" name="page" value="normal"><span>Classic</span></label>
+                <label><input type="radio" name="page" value="gothic"><span>Gothic</span></label>
+                <label><input type="radio" name="page" value="notices"><span>Alerts</span></label>
+                <label><input type="radio" name="page" value="calibrate"><span>Calibrate</span></label>
+            </div>
+            <dl class="legend">
+                <dt>A</dt><dd>Refresh departures</dd>
+                <dt>B</dt><dd>Disruptions, press again to go back</dd>
+                <dt>C</dt><dd>Switch classic and gothic</dd>
+                <dt>D</dt><dd>Calibration, press again to go back</dd>
+            </dl>
+            <p class="note">The orange buttons on the frame work too, left to right.</p>
+        </div>
+        <div class="group">
+            <h2>View</h2>
+            <div class="segments">
+                <label><input type="radio" name="zoom" value="fit"><span>Fit</span></label>
+                <label><input type="radio" name="zoom" value="1"><span>1×</span></label>
+                <label><input type="radio" name="zoom" value="2"><span>2×</span></label>
+                <label><input type="radio" name="zoom" value="3"><span>3×</span></label>
+                <label><input type="radio" name="zoom" value="4"><span>4×</span></label>
+            </div>
+            <label class="toggle">Show what the mat hides <input type="checkbox" name="reveal"></label>
+            <p class="note">1× and up show one panel pixel per screen pixel or more, unsmoothed.</p>
+        </div>
+    </form>
+
+    <!-- Etch -->
+    <form class="pane" data-pane="etch" id="etchForm" hidden>
+        <div class="group">
+            <p>Live in this browser, with web/etch.js using the settings below. The frame uses its own settings until you hand these over.</p>
+            <div class="segments">
+                <label><input type="radio" name="view" value="page"><span>Gothic page</span></label>
+                <label><input type="radio" name="view" value="scale"><span>Type scale</span></label>
+            </div>
+            <div class="body" data-view="scale">
+                <div class="segments">
+                    <label><input type="radio" name="scaleFont" value="jacquard"><span>Jacquard 12</span></label>
+                    <label><input type="radio" name="scaleFont" value="bastarda"><span>Bastarda 9</span></label>
+                </div>
+                <label class="field">Sample <input type="text" name="sample"></label>
+                <p class="note">Each exact size from 1× to 6×; the red numbers are the scale.</p>
+            </div>
+        </div>
+        <div class="group">
+            <h2>Edges of the text</h2>
+            <label class="toggle">Etch the edges <input type="checkbox" name="on"></label>
+            <div class="body" data-for="on">
+                <label class="slider"><span class="slider-head">Blur per scale step <output name="blurOut"></output></span>
+                    <input type="range" name="blur" min="0" max="1" step="0.05">
+                    <small>None at 1×, one step at 2× (times, icons), five at the 6× temperature.</small></label>
+                <label class="slider"><span class="slider-head">Noise <output name="noiseOut"></output></span>
+                    <input type="range" name="noise" min="0" max="1.5" step="0.05"></label>
+                <label class="slider"><span class="slider-head">Edge band, px <output name="bandOut"></output></span>
+                    <input type="range" name="band" min="0" max="4" step="1"></label>
+                <label class="field">Pattern <select name="pattern"></select></label>
+            </div>
+        </div>
+        <div class="group">
+            <h2>Pepper on the text</h2>
+            <label class="toggle">Pepper the text <input type="checkbox" name="pepper"></label>
+            <div class="body" data-for="pepper">
+                <label class="slider"><span class="slider-head">Holes in the text <output name="holesOut"></output></span>
+                    <input type="range" name="holes" min="0" max="0.3" step="0.01"></label>
+                <label class="slider"><span class="slider-head">Specks around it <output name="specksOut"></output></span>
+                    <input type="range" name="specks" min="0" max="0.3" step="0.01">
+                    <small>Share of the pixels next to the text, fading out to the reach.</small></label>
+                <label class="slider"><span class="slider-head">Reach, px <output name="reachOut"></output></span>
+                    <input type="range" name="reach" min="1" max="10" step="1"></label>
+                <label class="slider"><span class="slider-head">From scale <output name="pepperFromOut"></output></span>
+                    <input type="range" name="pepperFrom" min="1" max="6" step="1">
+                    <small>1 = everything, 2 = not the 1× labels, 6 = only the temperature.</small></label>
+            </div>
+        </div>
+        <div class="group">
+            <h2>Pepper on the whole frame</h2>
+            <label class="toggle">Pepper everything <input type="checkbox" name="grain"></label>
+            <div class="body" data-for="grain">
+                <label class="slider"><span class="slider-head">Black specks <output name="grainInkOut"></output></span>
+                    <input type="range" name="grainInk" min="0" max="0.1" step="0.002">
+                    <small>Adds ink wherever it lands on white.</small></label>
+                <label class="slider"><span class="slider-head">White specks <output name="grainPaperOut"></output></span>
+                    <input type="range" name="grainPaper" min="0" max="0.1" step="0.002">
+                    <small>Takes ink away from black and red, artwork included.</small></label>
+            </div>
+        </div>
+        <div class="group" data-view="page">
+            <h2>Try</h2>
+            <label class="field">A temperature <input type="text" name="temp" placeholder="live" inputmode="numeric"></label>
+        </div>
+        <div class="group">
+            <h2>Settings</h2>
+            <code class="settings" id="settings"></code>
+            <div class="buttons">
+                <button type="button" class="btn primary" id="copy">Copy</button>
+                <button type="button" class="btn" id="reset">Back to the frame's settings</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Guides -->
+    <form class="pane" data-pane="guides" id="guideForm" hidden>
+        <div class="group">
+            <p>A drawing guide on the artwork's canvas (460 × 704 px, one pixel per panel pixel), from the frame's own measurements.</p>
+            <label class="toggle">Show on the frame <input type="checkbox" name="overlay"></label>
+        </div>
+        <div class="group">
+            <h2>Layers</h2>
+            <label class="toggle">Drop boxes and button lines <input type="checkbox" name="boxes"></label>
+            <label class="toggle">Current drops and icons <input type="checkbox" name="drops"></label>
+            <label class="toggle">Edge the mat may hide (2 px) <input type="checkbox" name="edge"></label>
+            <label class="toggle">Module grid (24 px) <input type="checkbox" name="grid"></label>
+            <label class="toggle">Labels <input type="checkbox" name="labels"></label>
+        </div>
+        <div class="group">
+            <h2>Export</h2>
+            <div class="segments">
+                <label><input type="radio" name="scale" value="1"><span>1×</span></label>
+                <label><input type="radio" name="scale" value="4"><span>4×</span></label>
+                <label><input type="radio" name="scale" value="8"><span>8×</span></label>
+            </div>
+            <label class="toggle">Artwork underneath <input type="checkbox" name="art"></label>
+            <p class="note">4× is 1840 × 2816: lines and labels stay clear. Draw at 1×, or at 4× in whole 4 px blocks.</p>
+            <div class="buttons"><button type="button" class="btn primary" id="download">Download PNG</button></div>
+        </div>
+        <div class="group">
+            <h2>Drawing the drops</h2>
+            <ol>
+                <li>Keep each drop inside its box (40 × 48 px from the top edge, centred on the button).</li>
+                <li>Leave room for the 12 × 12 icon, or draw it too.</li>
+                <li>One layer per drop; black and white only, transparent where the artwork shows.</li>
+                <li>Export each layer as a full-canvas PNG.</li>
+            </ol>
+        </div>
+    </form>
+
+    <footer id="footer">Preview server · sizes from dashboard.css · settings stay in this browser</footer>
+</aside>
+
+<main class="wall" id="wall">
+    <div class="stage" id="stage">
+        <div class="case" id="case">
+            <div class="mount">
+                <canvas class="panel" id="panel" width="480" height="800" aria-label="The frame as the panel draws it"></canvas>
+                <iframe class="panel off" id="live" title="The gothic page, live"></iframe>
+                <canvas class="guide" id="guide" hidden></canvas>
+                <div class="mat" id="mat"></div>
+            </div>
+        </div>
+        <p class="caption" id="caption"></p>
+    </div>
+</main>
+
+<script src="../ui-icons.js"></script>
+<script src="../icons.js"></script>
+<script src="../etch.js"></script>
+<script>
+(function () {
+    const W = 480, H = 800, ART_W = 460, ART_H = 704;
+    const root = getComputedStyle(document.documentElement);
+    const px = (name) => parseFloat(root.getPropertyValue(name)) || 0;
+    const mat = { top: px('--mat-top'), right: px('--mat-right'), bottom: px('--mat-bottom'), left: px('--mat-left') };
+    const border = { side: px('--mat-border'), bottom: px('--mat-border-bottom') };
+    const $ = (id) => document.getElementById(id);
+    const store = {
+        get(key, fallback) { try { return { ...fallback, ...(JSON.parse(localStorage.getItem(key)) || {}) }; } catch { return { ...fallback }; } },
+        set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} },
+    };
+
+    // ── Frame: case, mat window, panel behind it at its true offset ─────────────────
+    const matEl = $('mat');
+    matEl.style.width = `${W - mat.left - mat.right}px`;
+    matEl.style.height = `${H - mat.top - mat.bottom}px`;
+    for (const el of [$('panel'), $('live')]) {
+        el.style.left = `${border.side - mat.left}px`;
+        el.style.top = `${border.side - mat.top}px`;
+    }
+    // The guide covers the artwork, which starts at the mat's corner: the window's top left.
+    const guideEl = $('guide');
+    Object.assign(guideEl.style, { left: `${border.side}px`, top: `${border.side}px`, width: `${ART_W}px`, height: `${ART_H}px` });
+
+    const ui = store.get('studio', { tab: 'frame', zoom: 'fit', reveal: false, home: 'gothic' });
+    let page = ui.home;
+
+    // On the preview server: the Pi's own PNGs (Frame) and its live data (Etch). In the static
+    // copy: saved data, and every page drawn here.
+    const DATA = document.querySelector('meta[name="studio-data"]')?.content || '';
+    const STATIC = DATA !== '';
+    const dataUrl = (mode) => (STATIC ? `${DATA}${mode}.json` : `/state.json?mode=${mode}`);
+    const PAGES = { normal: '/frame.png', gothic: '/gothic.png', notices: '/notices.png', calibrate: '/calibrate.png' };
+    const NAMES = { normal: 'Classic', gothic: 'Gothic', notices: 'Disruptions', calibrate: 'Calibration' };
+    const ACTIONS = { a: 'A: refresh', b: 'B: disruptions / back', c: 'C: classic / gothic', d: 'D: calibration / back' };
+
+    const caseEl = $('case');
+    for (const b of ['a', 'b', 'c', 'd']) {
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'hw';
+        el.title = ACTIONS[b];
+        el.setAttribute('aria-label', `Button ${ACTIONS[b]}`);
+        el.style.left = `calc(var(--case-border) + ${border.side - mat.left + px(`--btn-${b}-x`)}px)`;
+        el.addEventListener('click', () => press(b));
+        caseEl.appendChild(el);
+    }
+
+    // As display/client.py: C switches the main page; B and D go back to it.
+    async function press(b) {
+        if (b === 'a') {
+            page = ui.home;
+            setStatus('Refreshing…');
+            if (!STATIC) await fetch('/refresh', { method: 'POST' }).catch(() => {});
+        } else if (b === 'b') {
+            page = page === 'notices' ? ui.home : 'notices';
+        } else if (b === 'c') {
+            ui.home = ui.home === 'gothic' ? 'normal' : 'gothic';
+            page = ui.home;
+        } else if (b === 'd') {
+            page = page === 'calibrate' ? ui.home : 'calibrate';
+        }
+        if (ui.tab === 'etch') setTab('frame');
+        showPage();
+    }
+
+    function showPage() {
+        frameForm.page.value = page;
+        save();
+        if (usesLive()) {
+            describeLive();
+            drawLive();
+        } else {
+            etag = null;
+            loadServer();
+        }
+    }
+    // The live view draws the Etch tab, and every tab in the static copy.
+    const usesLive = () => STATIC || ui.tab === 'etch';
+
+    // ── Server renders: reduced like the Zero does, shown in e-ink colours ──────────
+    const PANEL = [[0, 0, 0], [255, 255, 255], [255, 0, 0]];
+    const SHOWN = [[38, 35, 44], [211, 210, 202], [178, 72, 58]];
+    function toPanel(img) {
+        const d = img.data;
+        for (let i = 0; i < d.length; i += 4) {
+            let best = 0, bestDist = Infinity;
+            for (let c = 0; c < 3; c++) {
+                const dr = d[i] - PANEL[c][0], dg = d[i + 1] - PANEL[c][1], db = d[i + 2] - PANEL[c][2];
+                const dist = dr * dr + dg * dg + db * db;
+                if (dist < bestDist) { bestDist = dist; best = c; }
+            }
+            [d[i], d[i + 1], d[i + 2]] = SHOWN[best];
+            d[i + 3] = 255;
+        }
+        return img;
+    }
+
+    const panel = $('panel');
+    let etag = null;
+    async function loadServer() {
+        if (usesLive()) return;
+        const shown = page;
+        try {
+            const res = await fetch(PAGES[shown], { cache: 'no-cache', headers: etag ? { 'If-None-Match': etag } : {} });
+            if (res.status === 304) return;
+            if (!res.ok) throw new Error(`${res.status}`);
+            etag = res.headers.get('ETag');
+            const drawnAt = res.headers.get('X-Drawn-At') || '';
+            const bitmap = await createImageBitmap(await res.blob());
+            if (shown !== page || usesLive()) return;
+            const ctx = panel.getContext('2d', { willReadFrequently: true });
+            ctx.drawImage(bitmap, 0, 0, W, H);
+            ctx.putImageData(toPanel(ctx.getImageData(0, 0, W, H)), 0, 0);
+            setStatus(`${NAMES[shown]} · rendered ${drawnAt}`);
+            setCaption(`${NAMES[shown]} · exactly what the panel draws`);
+        } catch (err) {
+            setStatus(`Can't load ${PAGES[shown]} (${err.message})`);
+        }
+    }
+    setInterval(loadServer, 15000);
+
+    const setStatus = (text) => { $('status').textContent = text; };
+    const setCaption = (text) => { $('caption').textContent = text; };
+
+    // ── Live gothic page (Etch): the dashboard in a frame, re-etched on every change ─
+    const live = $('live');
+    const LIVE_CSS = `
+        html, body { margin: 0 !important; overflow: hidden !important; }
+        .frame img, .frame canvas { image-rendering: pixelated; }`;
+    // The dashboard page in renderer mode (?render=1): it draws only what it's handed, like
+    // on the Pi. Works the same on the preview server and in the static copy.
+    let liveReady = null;
+    function ensureLive() {
+        if (liveReady) return liveReady;
+        liveReady = new Promise((resolve) => {
+            live.addEventListener('load', () => {
+                const d = live.contentDocument;
+                const style = d.createElement('style');
+                style.textContent = LIVE_CSS;
+                d.head.append(style);
+                resolve({ w: live.contentWindow, d, frame: d.getElementById('frame') });
+            }, { once: true });
+            live.src = '../dashboard.html?render=1';
+        });
+        return liveReady;
+    }
+
+    const payloads = {};
+    async function payloadFor(mode, fresh) {
+        if (!payloads[mode] || fresh) {
+            const res = await fetch(dataUrl(mode), { cache: 'no-store' });
+            if (!res.ok) throw new Error(`${res.status}`);
+            payloads[mode] = await res.json();
+        }
+        return structuredClone(payloads[mode]);
+    }
+
+    // Draw the live view: on the Etch tab the gothic page (or the type scale) with the panel's
+    // settings; elsewhere (static copy) the chosen page with the frame's own settings.
+    let liveRun = 0;
+    async function drawLive({ fresh = false } = {}) {
+        const run = ++liveRun;
+        const l = await ensureLive();
+        const etching = ui.tab === 'etch';
+        if (etching && etch.view === 'scale') return renderScale(l);
+        const mode = etching ? 'gothic' : page;
+        let payload;
+        try {
+            payload = await payloadFor(mode, fresh);
+        } catch (err) {
+            setStatus(`Can't load ${dataUrl(mode)} (${err.message})`);
+            return;
+        }
+        if (run !== liveRun) return;
+        if (etching && etch.temp !== '' && !Number.isNaN(Number(etch.temp)) && payload.view) payload.view.weather.now = Math.round(Number(etch.temp));
+        l.w.ETCH_PARAMS = etching ? etchParams() : undefined; // undefined: the frame's own (ETCH_DEFAULTS)
+        await l.w.renderDashboard(payload);
+    }
+    // Etch settings changed on the gothic page: redo only the etch.
+    function reEtch() {
+        if (etch.view === 'scale') return drawLive();
+        return ensureLive().then((l) => l.w.etchGothic(l.frame, etchParams()));
+    }
+    // On the preview server the live data moves: fetch it again every 15 s, like the page would.
+    setInterval(() => { if (!STATIC && ui.tab === 'etch' && etch.view === 'page') drawLive({ fresh: true }); }, 15000);
+
+    // The type scale: the sample in the chosen font at every exact size, etched like the page.
+    // Only the sample lines carry data-cx, so the scale labels stay plain.
+    async function renderScale({ w, d, frame }) {
+        const f = SCALE_FONTS[etch.scaleFont] || SCALE_FONTS.jacquard;
+        await Promise.all([d.fonts.load(`${f.em * 2}px ${f.family}`), d.fonts.load("21px 'Jacquard 12'")]);
+        const family = f.family.replace(/'/g, '&apos;');
+        const sample = String(etch.sample || 'Sample').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        let y = mat.top + 6;
+        let svg = '';
+        for (let g = 1; g <= 6; g++) {
+            const size = f.em * g;
+            y += Math.round(size * 1.05) + 6; // baseline: below the line's ascenders
+            svg += `<text x="${mat.left + 12}" y="${y}" font-family="&apos;Jacquard 12&apos;" font-size="21" fill="#ff0000">${g}×</text>`;
+            svg += `<text x="${mat.left + 46}" y="${y}" font-family="${family}" font-size="${size}" fill="#000" data-cx="0" data-g="${g}" data-font="${etch.scaleFont}">${sample}</text>`;
+            y += Math.round(size * 0.3); // descenders
+        }
+        frame.innerHTML = `<div class="gothic"><svg class="gothic-data" width="480" height="800" viewBox="0 0 480 800" shape-rendering="crispEdges">${svg}</svg></div>`;
+        return w.etchGothic(frame, etchParams());
+    }
+
+    // ── Tabs ────────────────────────────────────────────────────────────────────────
+    const frameForm = $('frameForm');
+    const etchForm = $('etchForm');
+    const guideForm = $('guideForm');
+    function setTab(tab) {
+        ui.tab = ['frame', 'etch', 'guides'].includes(tab) ? tab : 'frame';
+        for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', b.dataset.tab === ui.tab);
+        for (const p of document.querySelectorAll('.pane')) p.hidden = p.dataset.pane !== ui.tab;
+        history.replaceState(null, '', `#${ui.tab}`);
+        const isLive = usesLive();
+        live.classList.toggle('off', !isLive);
+        panel.hidden = isLive;
+        guideEl.hidden = !(ui.tab === 'guides' && guides.overlay);
+        if (isLive) {
+            describeLive();
+            // A full render, not just the etch: the layout may have changed while off-tab.
+            drawLive();
+            if (ui.tab === 'guides') drawOverlay();
+        } else {
+            etag = null;
+            loadServer();
+            if (ui.tab === 'guides') drawOverlay();
+        }
+        save();
+    }
+    for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('click', () => setTab(b.dataset.tab));
+
+    // ── Zoom: fit (smoothed) or whole panel pixels ─────────────────────────────────
+    const wall = $('wall');
+    const stage = $('stage');
+    function fit() {
+        const zoomed = ui.zoom !== 'fit';
+        wall.classList.toggle('zoomed', zoomed);
+        if (zoomed) {
+            stage.style.transform = '';
+            stage.style.zoom = Number(ui.zoom) / devicePixelRatio;
+            return;
+        }
+        stage.style.zoom = '';
+        stage.style.transform = '';
+        const box = wall.getBoundingClientRect();
+        const w = stage.offsetWidth, h = stage.offsetHeight;
+        const s = Math.min(1.6, (box.height - 48) / h, (box.width - 48) / w);
+        stage.style.transform = `translate(${(box.width - w * s) / 2}px, ${(box.height - h * s) / 2}px) scale(${s})`;
+    }
+    addEventListener('resize', fit);
+
+    frameForm.addEventListener('change', (e) => {
+        const el = e.target;
+        if (el.name === 'page') {
+            page = el.value;
+            if (page === 'normal' || page === 'gothic') ui.home = page;
+            showPage();
+        } else if (el.name === 'zoom') {
+            ui.zoom = el.value;
+            fit();
+            save();
+        } else if (el.name === 'reveal') {
+            ui.reveal = el.checked;
+            document.body.classList.toggle('reveal', ui.reveal);
+            save();
+        }
+    });
+
+    function save() { store.set('studio', ui); }
+
+    // ── Etch ────────────────────────────────────────────────────────────────────────
+    const SWITCHES = ['on', 'pepper', 'grain'];
+    const NUMBERS = ['blur', 'noise', 'band', 'holes', 'specks', 'reach', 'pepperFrom', 'grainInk', 'grainPaper'];
+    for (const p of window.ETCH_PATTERNS) etchForm.pattern.add(new Option(p, p));
+    const etch = store.get('etch-lab', { ...window.ETCH_DEFAULTS, temp: '' });
+    const SCALE_FONTS = {
+        jacquard: { family: "'Jacquard 12'", em: 21, name: 'Jacquard 12' },
+        bastarda: { family: "'Jacquarda Bastarda 9'", em: 13, name: 'Jacquarda Bastarda 9' },
+    };
+    for (const [k, v] of Object.entries({ view: 'page', scaleFont: 'jacquard', sample: '18:51 −12° feels' })) if (etch[k] === undefined) etch[k] = v;
+    function describeLive() {
+        if (ui.tab !== 'etch') {
+            setStatus(`${NAMES[page]} · test data`);
+            setCaption(`${NAMES[page]} · drawn in this browser from saved test data, with the frame's own etch`);
+        } else if (etch.view === 'scale') {
+            const name = (SCALE_FONTS[etch.scaleFont] || SCALE_FONTS.jacquard).name;
+            setStatus(`Type scale · ${name}`);
+            setCaption(`${name} at 1× to 6×, with the etch settings from the panel`);
+        } else {
+            setStatus(STATIC ? 'Gothic · test data' : 'Gothic · live in this browser');
+            setCaption(`Gothic · ${STATIC ? 'saved test data' : 'live'}, with the etch settings from the panel`);
+        }
+    }
+    function etchParams() {
+        const p = { pattern: etch.pattern };
+        for (const k of SWITCHES) p[k] = Boolean(etch[k]);
+        for (const k of NUMBERS) p[k] = Number(etch[k]);
+        return p;
+    }
+    function fillEtch() {
+        for (const k of SWITCHES) etchForm[k].checked = etch[k];
+        for (const k of [...NUMBERS, 'pattern', 'temp', 'view', 'scaleFont', 'sample']) etchForm[k].value = etch[k];
+    }
+    function showEtch() {
+        for (const k of NUMBERS) etchForm[`${k}Out`].value = Number(etch[k]);
+        for (const body of etchForm.querySelectorAll('.body[data-for]')) {
+            const off = !etch[body.dataset.for];
+            body.setAttribute('aria-disabled', off);
+            for (const input of body.querySelectorAll('input, select')) input.disabled = off;
+        }
+        for (const el of etchForm.querySelectorAll('[data-view]')) el.hidden = el.dataset.view !== etch.view;
+        $('settings').textContent = JSON.stringify(etchParams());
+        store.set('etch-lab', etch);
+    }
+    etchForm.addEventListener('input', (e) => {
+        const el = e.target;
+        etch[el.name] = el.type === 'checkbox' ? el.checked : el.value;
+        showEtch();
+        if (['view', 'scaleFont'].includes(el.name)) describeLive();
+        if (!liveReady || ui.tab !== 'etch') return;
+        const redraw = ['temp', 'view', 'scaleFont', 'sample'].includes(el.name);
+        if (redraw) drawLive();
+        else reEtch();
+    });
+    etchForm.addEventListener('submit', (e) => e.preventDefault());
+    $('reset').addEventListener('click', () => {
+        Object.assign(etch, window.ETCH_DEFAULTS);
+        fillEtch();
+        showEtch();
+        if (liveReady && ui.tab === 'etch') reEtch();
+    });
+    // navigator.clipboard needs https; the preview server is http, so copy the selection.
+    $('copy').addEventListener('click', (e) => {
+        const range = document.createRange();
+        range.selectNodeContents($('settings'));
+        getSelection().removeAllRanges();
+        getSelection().addRange(range);
+        let copied = false;
+        try { copied = document.execCommand('copy'); } catch {}
+        e.target.textContent = copied ? 'Copied' : 'Selected: press ⌘C';
+        setTimeout(() => { e.target.textContent = 'Copy'; }, 2000);
+    });
+
+    // ── Guides: drawn at any scale, on the frame or for export ─────────────────────
+    const BOX = { w: 40, h: 48 };
+    const GUIDE_BUTTONS = [
+        ['A', 'refresh', 'refresh'],
+        ['B', 'disruptions', 'disruptions · back'],
+        ['C', 'gothic', 'classic ⇄ gothic'],
+        ['D', 'calibrate', 'calibration'],
+    ];
+    const COLOURS = { box: '#2457c5', line: 'rgba(36, 87, 197, .6)', grid: 'rgba(0, 150, 190, .4)', edge: 'rgba(230, 40, 40, .3)', label: '#2457c5' };
+    const guides = store.get('studio-guides', { overlay: true, boxes: true, drops: true, edge: true, grid: false, labels: true, scale: '4', art: true });
+    const load = (src) => new Promise((resolve) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = () => resolve(null); img.src = src; });
+    const svgImage = (markup) => load(`data:image/svg+xml,${encodeURIComponent(markup.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" '))}`);
+    let art = null;
+    const drops = {};
+    const guideAssets = (async () => {
+        art = await load('../art/window.png');
+        for (const [, action] of GUIDE_BUTTONS) drops[action] = await svgImage(window.notchSvg(action));
+    })();
+
+    function drawGuide(canvas, s, withArt) {
+        canvas.width = ART_W * s;
+        canvas.height = ART_H * s;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        if (withArt && art) {
+            ctx.globalAlpha = 0.45;
+            ctx.drawImage(art, 0, 0, ART_W * s, ART_H * s);
+            ctx.globalAlpha = 1;
+        }
+        const thin = Math.max(1, s / 4);
+        if (guides.grid) {
+            // Module columns at panel x = 12 + 24n, rows at y = 50 + 24n.
+            ctx.fillStyle = COLOURS.grid;
+            for (let x = 12 - mat.left; x <= ART_W; x += 24) ctx.fillRect(x * s, 0, thin, ART_H * s);
+            for (let y = 50 - mat.top; y <= ART_H; y += 24) ctx.fillRect(0, y * s, ART_W * s, thin);
+        }
+        if (guides.edge) {
+            ctx.fillStyle = COLOURS.edge;
+            ctx.fillRect(0, 0, ART_W * s, 2 * s);
+            ctx.fillRect(0, (ART_H - 2) * s, ART_W * s, 2 * s);
+            ctx.fillRect(0, 2 * s, 2 * s, (ART_H - 4) * s);
+            ctx.fillRect((ART_W - 2) * s, 2 * s, 2 * s, (ART_H - 4) * s);
+        }
+        for (const [b, action, label] of GUIDE_BUTTONS) {
+            const x = px(`--btn-${b.toLowerCase()}-x`) - mat.left;
+            if (guides.drops && drops[action]) {
+                // The drop as the frame draws it: 22×34, its top NOTCH_HIDDEN rows behind the mat.
+                ctx.globalAlpha = 0.55;
+                ctx.drawImage(drops[action], (x - 11) * s, -window.NOTCH_HIDDEN * s, 22 * s, 34 * s);
+                ctx.globalAlpha = 1;
+            }
+            if (guides.boxes) {
+                const lw = Math.max(1, s / 2);
+                ctx.lineWidth = lw;
+                ctx.strokeStyle = COLOURS.box;
+                ctx.setLineDash([3 * s, 2 * s]);
+                ctx.strokeRect((x - BOX.w / 2) * s + lw / 2, lw / 2, BOX.w * s - lw, BOX.h * s - lw);
+                ctx.strokeStyle = COLOURS.line;
+                ctx.beginPath();
+                ctx.moveTo(x * s, 0);
+                ctx.lineTo(x * s, BOX.h * s);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.strokeRect((x - 6) * s - lw / 2, 13 * s - lw / 2, 12 * s + lw, 12 * s + lw);
+            }
+            if (guides.labels) {
+                ctx.fillStyle = COLOURS.label;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.font = `600 ${8 * s}px system-ui, sans-serif`;
+                ctx.fillText(`${b} · x ${x}`, x * s, (BOX.h + 3) * s);
+                ctx.font = `400 ${6.5 * s}px system-ui, sans-serif`;
+                ctx.fillText(label, x * s, (BOX.h + 13) * s);
+            }
+        }
+    }
+    // On the frame: sharp enough for any zoom, without the artwork (the page is underneath).
+    async function drawOverlay() {
+        await guideAssets;
+        drawGuide(guideEl, 4, false);
+    }
+    function fillGuides() {
+        for (const k of ['overlay', 'boxes', 'drops', 'edge', 'grid', 'labels', 'art']) guideForm[k].checked = guides[k];
+        guideForm.scale.value = guides.scale;
+    }
+    guideForm.addEventListener('change', (e) => {
+        const el = e.target;
+        guides[el.name] = el.type === 'checkbox' ? el.checked : el.value;
+        store.set('studio-guides', guides);
+        guideEl.hidden = !(ui.tab === 'guides' && guides.overlay);
+        drawOverlay();
+    });
+    $('download').addEventListener('click', async () => {
+        await guideAssets;
+        const canvas = document.createElement('canvas');
+        drawGuide(canvas, Number(guides.scale), guides.art);
+        canvas.toBlob((blob) => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `notch-guide-${guides.scale}x${guides.art ? '' : '-transparent'}.png`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        }, 'image/png');
+    });
+
+    // ── Start ───────────────────────────────────────────────────────────────────────
+    if (STATIC) {
+        $('footer').textContent = 'Static copy · anonymised test data · settings stay in this browser';
+        for (const note of document.querySelectorAll('[data-server-only]')) note.hidden = true;
+    }
+    frameForm.page.value = page;
+    frameForm.zoom.value = ui.zoom;
+    frameForm.reveal.checked = ui.reveal;
+    document.body.classList.toggle('reveal', ui.reveal);
+    fillEtch();
+    showEtch();
+    fillGuides();
+    setTab(location.hash.slice(1) || ui.tab);
+    fit();
+    document.fonts.ready.then(fit);
+})();
+</script>
+</body>
+</html>

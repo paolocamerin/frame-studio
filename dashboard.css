@@ -1,0 +1,357 @@
+/*
+ * 480×800 portrait frame for a 7-colour e-ink panel.
+ * Only the panel's exact colours: no greys, no tints, no shadows.
+ * Red is reserved for "something is wrong": delays, cancellations, stale data.
+ *
+ * Type: IBM Plex Sans (medium, bold for emphasis) for everything: sturdy strokes
+ * that survive the reduction to black and white better than lighter grotesks.
+ * Jacquard 12, a pixel face, for the temperatures only.
+ */
+@font-face { font-family: 'IBM Plex Sans'; font-weight: 100 700; src: url(fonts/IBMPlexSans.ttf); }
+@font-face { font-family: 'Jacquard 12'; font-weight: 400; src: url(fonts/Jacquard12-Regular.ttf); }
+@font-face { font-family: 'Jersey 10'; font-weight: 400; src: url(fonts/Jersey10-Regular.ttf); }
+@font-face { font-family: 'Jacquarda Bastarda 9'; font-weight: 400; src: url(fonts/JacquardaBastarda9-Regular.ttf); }
+
+:root {
+    --paper: #ffffff;
+    --ink: #000000;
+    --alert: #ff0000;
+    /* What the passe-partout hides on each edge, measured on the calibration page
+       (button D): 2 px less than the first bar that shows (it hides between that bar's
+       length and the previous one's). First bars seen: top 48, sides 12, bottom 52.
+       The visible window is x 10–470, y 46–750. */
+    --mat-top: 46px;
+    --mat-right: 10px;
+    --mat-bottom: 50px;
+    --mat-left: 10px;
+    --inset: 12px;  /* clear space inside the window before any content */
+    /* Centre x of each button above the frame, A to D from left to right (measured).
+       C has no function yet, so no notch. */
+    --btn-a-x: 60px;
+    --btn-b-x: 180px;
+    --btn-c-x: 300px;
+    --btn-d-x: 420px;
+    --notch-h: 34px;  /* band below the window's top edge for the notches (30px visible + air) */
+    --gutter: 8px;
+    --hair: 2px;    /* rules; 2px survives the panel better than 1px */
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--paper); }
+
+body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    color: var(--ink);
+}
+
+/* In the browser preview, show the frame as an object on a neutral wall. */
+body.preview {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px 0;
+    background: #c9c9c4;
+}
+body.preview .frame { outline: 1px solid #8c8c86; }
+
+.frame {
+    position: relative;
+    width: 480px;
+    height: 800px;
+    overflow: hidden;
+    padding: calc(var(--mat-top) + var(--notch-h)) calc(var(--mat-right) + var(--inset))
+             calc(var(--mat-bottom) + var(--inset)) calc(var(--mat-left) + var(--inset));
+    background: var(--paper);
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Button notches ────────────────────────────────────────
+   A small black pixel teardrop under each working button, hanging from the top of
+   the window, with a white 12px icon for what the button does on this page.
+   Drawn by notchSvg() in icons.js, 22×34 pixels; the top 4 sit behind the mat. */
+.notch {
+    position: absolute;
+    top: calc(var(--mat-top) - 4px);
+    left: calc(var(--x) - 11px);
+    line-height: 0;
+}
+.notch svg { display: block; }
+.notch.a { --x: var(--btn-a-x); }
+.notch.b { --x: var(--btn-b-x); }
+.notch.c { --x: var(--btn-c-x); }
+.notch.d { --x: var(--btn-d-x); }
+
+/* ── Calibration page (button D) ─────────────────────────────
+   Drawn from the frame's pixel 0, ignoring the margins, to read off what the
+   passe-partout really shows. See web/calibrate.js. */
+.calibrate {
+    position: absolute;
+    inset: 0;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+}
+
+/* ── Weather ─────────────────────────────────────────────── */
+
+.weather {
+    padding: 8px var(--gutter) 0;
+}
+
+/* Temperature and min/max as one group, centred on the frame. */
+.now {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 28px;
+}
+
+/* The one playful element: pixel numerals. The min/max arrows use the same 7px pixel as the 84px numerals. */
+.temp {
+    font-family: 'Jacquard 12', monospace;
+    font-weight: 400; font-synthesis: none; /* Jacquard has one weight; never fake a bold */
+    font-size: 264px; /* Jacquard's digits are small for their size: 264px gives ~135px tall numerals */
+    line-height: 0.6;
+    padding-bottom: 22px; /* Jacquard's 7 and 9 hang below the baseline */
+}
+
+.range {
+    display: grid;
+    gap: 4px;
+    padding-bottom: 14px;
+    font-family: 'Jacquard 12', monospace;
+    font-weight: 400; font-synthesis: none;
+    font-size: 84px;
+    line-height: 0.7;
+    text-align: right;
+}
+
+.range svg { width: 35px; height: 42px; margin-right: 8px; vertical-align: 0; shape-rendering: crispEdges; }
+
+/* Four evenly spaced square tiles: the rest of today and what comes next. */
+.periods {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.period {
+    aspect-ratio: 1;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 6px;
+    /* Pixel-art frame, 2 pixels thick: an 11×11-pixel image sliced into corners and
+       edges, drawn at 2 screen px per pixel to match the icons. Stepped corners. */
+    border: 8px solid transparent;
+    border-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 11 11' shape-rendering='crispEdges' fill='%23000'><rect x='2' y='0' width='1' height='1'/><rect x='3' y='0' width='1' height='1'/><rect x='4' y='0' width='1' height='1'/><rect x='5' y='0' width='1' height='1'/><rect x='6' y='0' width='1' height='1'/><rect x='7' y='0' width='1' height='1'/><rect x='8' y='0' width='1' height='1'/><rect x='1' y='1' width='1' height='1'/><rect x='2' y='1' width='1' height='1'/><rect x='3' y='1' width='1' height='1'/><rect x='4' y='1' width='1' height='1'/><rect x='5' y='1' width='1' height='1'/><rect x='6' y='1' width='1' height='1'/><rect x='7' y='1' width='1' height='1'/><rect x='8' y='1' width='1' height='1'/><rect x='9' y='1' width='1' height='1'/><rect x='0' y='2' width='1' height='1'/><rect x='1' y='2' width='1' height='1'/><rect x='9' y='2' width='1' height='1'/><rect x='10' y='2' width='1' height='1'/><rect x='0' y='3' width='1' height='1'/><rect x='1' y='3' width='1' height='1'/><rect x='9' y='3' width='1' height='1'/><rect x='10' y='3' width='1' height='1'/><rect x='0' y='4' width='1' height='1'/><rect x='1' y='4' width='1' height='1'/><rect x='9' y='4' width='1' height='1'/><rect x='10' y='4' width='1' height='1'/><rect x='0' y='5' width='1' height='1'/><rect x='1' y='5' width='1' height='1'/><rect x='9' y='5' width='1' height='1'/><rect x='10' y='5' width='1' height='1'/><rect x='0' y='6' width='1' height='1'/><rect x='1' y='6' width='1' height='1'/><rect x='9' y='6' width='1' height='1'/><rect x='10' y='6' width='1' height='1'/><rect x='0' y='7' width='1' height='1'/><rect x='1' y='7' width='1' height='1'/><rect x='9' y='7' width='1' height='1'/><rect x='10' y='7' width='1' height='1'/><rect x='0' y='8' width='1' height='1'/><rect x='1' y='8' width='1' height='1'/><rect x='9' y='8' width='1' height='1'/><rect x='10' y='8' width='1' height='1'/><rect x='1' y='9' width='1' height='1'/><rect x='2' y='9' width='1' height='1'/><rect x='3' y='9' width='1' height='1'/><rect x='4' y='9' width='1' height='1'/><rect x='5' y='9' width='1' height='1'/><rect x='6' y='9' width='1' height='1'/><rect x='7' y='9' width='1' height='1'/><rect x='8' y='9' width='1' height='1'/><rect x='9' y='9' width='1' height='1'/><rect x='2' y='10' width='1' height='1'/><rect x='3' y='10' width='1' height='1'/><rect x='4' y='10' width='1' height='1'/><rect x='5' y='10' width='1' height='1'/><rect x='6' y='10' width='1' height='1'/><rect x='7' y='10' width='1' height='1'/><rect x='8' y='10' width='1' height='1'/></svg>") 4 / 8px stretch;
+}
+
+.period svg { width: 48px; height: 48px; } /* 2 screen px per icon pixel: keep a multiple of 24 */
+
+/* Jersey 10 (same designer as Jacquard 12) is drawn on a 10px grid: keep sizes at multiples of 10. */
+.period span {
+    font-family: 'Jersey 10', monospace;
+    font-weight: 400;
+    font-synthesis: none;
+    font-size: 20px;
+    line-height: 1;
+}
+
+/* The part of the day we're in: a frame three pixels thick. */
+.period.current {
+    border-image-source: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 11 11' shape-rendering='crispEdges' fill='%23000'><rect x='2' y='0' width='1' height='1'/><rect x='3' y='0' width='1' height='1'/><rect x='4' y='0' width='1' height='1'/><rect x='5' y='0' width='1' height='1'/><rect x='6' y='0' width='1' height='1'/><rect x='7' y='0' width='1' height='1'/><rect x='8' y='0' width='1' height='1'/><rect x='1' y='1' width='1' height='1'/><rect x='2' y='1' width='1' height='1'/><rect x='3' y='1' width='1' height='1'/><rect x='4' y='1' width='1' height='1'/><rect x='5' y='1' width='1' height='1'/><rect x='6' y='1' width='1' height='1'/><rect x='7' y='1' width='1' height='1'/><rect x='8' y='1' width='1' height='1'/><rect x='9' y='1' width='1' height='1'/><rect x='0' y='2' width='1' height='1'/><rect x='1' y='2' width='1' height='1'/><rect x='2' y='2' width='1' height='1'/><rect x='3' y='2' width='1' height='1'/><rect x='4' y='2' width='1' height='1'/><rect x='5' y='2' width='1' height='1'/><rect x='6' y='2' width='1' height='1'/><rect x='7' y='2' width='1' height='1'/><rect x='8' y='2' width='1' height='1'/><rect x='9' y='2' width='1' height='1'/><rect x='10' y='2' width='1' height='1'/><rect x='0' y='3' width='1' height='1'/><rect x='1' y='3' width='1' height='1'/><rect x='2' y='3' width='1' height='1'/><rect x='8' y='3' width='1' height='1'/><rect x='9' y='3' width='1' height='1'/><rect x='10' y='3' width='1' height='1'/><rect x='0' y='4' width='1' height='1'/><rect x='1' y='4' width='1' height='1'/><rect x='2' y='4' width='1' height='1'/><rect x='8' y='4' width='1' height='1'/><rect x='9' y='4' width='1' height='1'/><rect x='10' y='4' width='1' height='1'/><rect x='0' y='5' width='1' height='1'/><rect x='1' y='5' width='1' height='1'/><rect x='2' y='5' width='1' height='1'/><rect x='8' y='5' width='1' height='1'/><rect x='9' y='5' width='1' height='1'/><rect x='10' y='5' width='1' height='1'/><rect x='0' y='6' width='1' height='1'/><rect x='1' y='6' width='1' height='1'/><rect x='2' y='6' width='1' height='1'/><rect x='8' y='6' width='1' height='1'/><rect x='9' y='6' width='1' height='1'/><rect x='10' y='6' width='1' height='1'/><rect x='0' y='7' width='1' height='1'/><rect x='1' y='7' width='1' height='1'/><rect x='2' y='7' width='1' height='1'/><rect x='8' y='7' width='1' height='1'/><rect x='9' y='7' width='1' height='1'/><rect x='10' y='7' width='1' height='1'/><rect x='0' y='8' width='1' height='1'/><rect x='1' y='8' width='1' height='1'/><rect x='2' y='8' width='1' height='1'/><rect x='3' y='8' width='1' height='1'/><rect x='4' y='8' width='1' height='1'/><rect x='5' y='8' width='1' height='1'/><rect x='6' y='8' width='1' height='1'/><rect x='7' y='8' width='1' height='1'/><rect x='8' y='8' width='1' height='1'/><rect x='9' y='8' width='1' height='1'/><rect x='10' y='8' width='1' height='1'/><rect x='1' y='9' width='1' height='1'/><rect x='2' y='9' width='1' height='1'/><rect x='3' y='9' width='1' height='1'/><rect x='4' y='9' width='1' height='1'/><rect x='5' y='9' width='1' height='1'/><rect x='6' y='9' width='1' height='1'/><rect x='7' y='9' width='1' height='1'/><rect x='8' y='9' width='1' height='1'/><rect x='9' y='9' width='1' height='1'/><rect x='2' y='10' width='1' height='1'/><rect x='3' y='10' width='1' height='1'/><rect x='4' y='10' width='1' height='1'/><rect x='5' y='10' width='1' height='1'/><rect x='6' y='10' width='1' height='1'/><rect x='7' y='10' width='1' height='1'/><rect x='8' y='10' width='1' height='1'/></svg>");
+}
+
+/* ── Transit ─────────────────────────────────────────────── */
+
+/* min-height/overflow let dashboard.js measure whether the rows fit (see fitRows).
+   The 12px of left padding (taken back from the margin, so nothing moves) leaves
+   room for the "!" that sticks out past the line numbers. */
+.transit {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    margin: 6px var(--gutter) 0 calc(var(--gutter) - 12px);
+    padding-left: 12px;
+}
+
+.stop {
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 1;
+    padding: 8px 0 5px;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 38px 1fr repeat(3, 50px);
+    column-gap: 8px;
+    align-items: center;
+    height: var(--row-h, 42px);
+    border-top: 1px solid var(--ink);
+}
+
+.badge {
+    display: grid;
+    place-items: center;
+    height: 30px;
+    border: var(--hair) solid var(--ink);
+    font-weight: 600;
+    font-size: 17px;
+    line-height: 1;
+}
+
+.badge { position: relative; }
+
+/* A disruption notice concerns this line (button B shows it): a red "!" overlapping
+   the left edge of the line number, centred vertically. */
+.badge .alert {
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 17px;
+    height: 17px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--alert);
+    color: var(--paper);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* Tram = square, bus = round. */
+.badge.bus { border-radius: 15px; }
+
+/* Towards/away arrow before the destination; an empty .dir keeps destinations aligned. */
+.dir {
+    display: inline-block;
+    width: 30px;
+    height: 16px;
+    margin-right: 6px;
+    vertical-align: 0;
+}
+
+/* line-height > 1 so descenders (g, y, ø) aren't cut off by overflow: hidden. */
+.dest {
+    font-size: 18px;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.time {
+    position: relative;
+    font-size: 18px;
+    line-height: 1.3;
+    text-align: right;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+}
+
+.time.first { font-weight: 700; }
+
+/* Timetable-only time: a small "ca." sits above it, like a footnote. */
+.time .ca {
+    position: absolute;
+    right: 0;
+    top: -7px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Red ink is lighter than black on the panel, so red text gets a heavier weight. */
+.time.late { color: var(--alert); font-weight: 700; }
+
+.time.cancelled {
+    color: var(--alert);
+    font-weight: 700;
+    text-decoration: line-through 2px;
+}
+
+.empty {
+    font-size: 20px;
+    padding-top: 24px;
+}
+
+/* ── Disruption page (button B) ──────────────────────────── */
+
+.notices {
+    flex: 1;
+    margin: 0 var(--gutter);
+}
+
+.notices-title {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 8px 0 14px;
+}
+
+.notice {
+    display: grid;
+    gap: 8px;
+    padding: 14px 0 16px;
+    border-top: 1px solid var(--ink);
+}
+
+.notice-lines { display: flex; gap: 8px; }
+.notice-lines .badge { width: 38px; }
+
+.notice-summary {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.notice-desc {
+    font-size: 16px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    overflow: hidden;
+}
+
+.notice-until {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* ── Warnings + footer ───────────────────────────────────── */
+
+.warning {
+    background: var(--alert);
+    color: var(--paper);
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 1.2;
+    padding: 8px var(--gutter);
+}
+
+.transit .warning { margin-top: 10px; padding: 8px 10px; }
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    line-height: 1;
+    padding: 8px var(--gutter) 4px;
+}
+
+/* The gothic page (button C, web/gothic.js): the artwork 1:1 at the mat's corner, data on top. */
+.gothic { position: absolute; inset: 0; }
+.gothic img { position: absolute; display: block; image-rendering: pixelated; }
+.gothic-data { position: absolute; inset: 0; font-weight: 400; }
+/* 24 px: 1 px per icon unit (gothic.js ICON). Keep 24 or 48: in between, the icons' pixels come out uneven. */
+.gothic-icon { position: absolute; } /* size set inline by gothic.js (ICON) */
+.gothic-etched { position: absolute; left: 0; top: 0; } /* web/etch.js: the text, redrawn with etched edges */
+.gothic-grain { position: absolute; left: 0; top: 0; } /* web/etch.js: pepper over the whole page */
+.gothic-icon svg { display: block; width: 100%; height: 100%; }

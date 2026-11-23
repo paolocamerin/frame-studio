@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Weather icons</title>
+<!-- Review sheet: every weather icon at the size the frame uses (48px), plus 2x. -->
+<link rel="stylesheet" href="../dashboard.css">
+<style>
+.sheet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 8px; padding: 8px var(--gutter); }
+.cell { display: grid; justify-items: center; gap: 4px; border: var(--hair) solid var(--ink); border-radius: 8px; padding: 10px 0 8px; }
+.cell svg { width: 48px; height: 48px; }
+.cell span { font-size: 13px; font-weight: 600; }
+.big { display: flex; justify-content: center; gap: 16px; padding-top: 18px; }
+.big svg { width: 96px; height: 96px; }
+</style>
+</head>
+<body>
+<main class="frame"><section class="sheet" id="sheet"></section><div class="big" id="big"></div></main>
+<script src="../weather-icons.js"></script>
+<script src="../icons.js"></script>
+<script>
+const names = Object.keys(window.WEATHER_ICONS);
+document.getElementById('sheet').innerHTML = names
+    .map((n) => `<div class="cell">${window.weatherIcon(n)}<span>${n}</span></div>`).join('');
+document.getElementById('big').innerHTML = ['partly-day', 'rain', 'thunder'].map((n) => window.weatherIcon(n)).join('');
+</script>
+</body>
+</html>

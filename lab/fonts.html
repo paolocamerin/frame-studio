@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Font comparison</title>
+<!-- Test sheet: the same departure rows in each candidate font, using the dashboard's own styles. -->
+<link rel="stylesheet" href="../dashboard.css">
+<style>
+@font-face { font-family: 'Atkinson Hyperlegible Next'; font-weight: 200 800; src: url(fonts/AtkinsonHyperlegibleNext.ttf); }
+@font-face { font-family: 'Pixelify Sans'; font-weight: 400 700; src: url(fonts/PixelifySans.ttf); }
+
+.sample { font-family: var(--font); padding: 0 var(--gutter); }
+.sample + .sample { margin-top: 14px; }
+.name { font-weight: 700; font-size: 13px; line-height: 1; padding-bottom: 2px; }
+.small { font-size: 12px; line-height: 1; padding-top: 6px; }
+</style>
+</head>
+<body>
+<main class="frame" id="frame"></main>
+<script>
+const FONTS = [
+    ['IBM Plex Sans', 'A · IBM Plex Sans (dashboard font)'],
+    ['Atkinson Hyperlegible Next', 'B · Atkinson Hyperlegible Next'],
+    ['Pixelify Sans', 'C · Pixelify Sans (pixel)'],
+];
+document.getElementById('frame').innerHTML = FONTS.map(([family, label]) => `
+    <section class="sample" style="--font:'${family}'">
+        <p class="name">${label}</p>
+        <h2 class="stop">Jernbanetorget</h2>
+        <div class="row">
+            <span class="badge tram">17</span>
+            <span class="dest">Sinsen-Grefsen st.</span>
+            <span class="time first">18:36</span>
+            <span class="time">18:50</span>
+            <span class="time"><span class="ca">ca.</span>19:05</span>
+        </div>
+        <div class="row">
+            <span class="badge bus">30</span>
+            <span class="dest">Bygdøy</span>
+            <span class="time first late">18:26</span>
+            <span class="time cancelled">18:37</span>
+            <span class="time">18:47</span>
+        </div>
+        <p class="small">Il1 O0 rn m. Weather: MET Norway. Updated 18:20</p>
+    </section>`).join('');
+</script>
+</body>
+</html>

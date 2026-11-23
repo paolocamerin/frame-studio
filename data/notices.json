@@ -1,0 +1,567 @@
+{
+ "hash": "3b0a335a40fc0bc9",
+ "view": {
+  "weather": {
+   "now": 17,
+   "min": 9,
+   "max": 18,
+   "periods": [
+    {
+     "label": "AFTERNOON",
+     "icon": "partly-day",
+     "current": true
+    },
+    {
+     "label": "EVENING",
+     "icon": "cloudy",
+     "current": false
+    },
+    {
+     "label": "NIGHT",
+     "icon": "cloudy",
+     "current": false
+    },
+    {
+     "label": "MORNING",
+     "icon": "rain",
+     "current": false
+    }
+   ]
+  },
+  "transit": [
+   {
+    "stop": "Jernbanetorget",
+    "line": "17",
+    "mode": "tram",
+    "direction": "in",
+    "destination": "Gaustadalléen",
+    "times": [
+     {
+      "time": "17:12",
+      "realtime": true,
+      "cancelled": false,
+      "late": true
+     },
+     {
+      "time": "17:25",
+      "realtime": true,
+      "cancelled": false,
+      "late": false
+     },
+     {
+      "time": "17:40",
+      "realtime": false,
+      "cancelled": false,
+      "late": false
+     }
+    ],
+    "notice": true
+   },
+   {
+    "stop": "Jernbanetorget",
+    "line": "17",
+    "mode": "tram",
+    "direction": "out",
+    "destination": "Sinsen-Grefsen st.",
+    "times": [
+     {
+      "time": "17:22",
+      "realtime": true,
+      "cancelled": false,
+      "late": true
+     },
+     {
+      "time": "17:35",
+      "realtime": true,
+      "cancelled": true,
+      "late": false
+     },
+     {
+      "time": "17:50",
+      "realtime": false,
+      "cancelled": false,
+      "late": false
+     }
+    ],
+    "notice": true
+   },
+   {
+    "stop": "Jernbanetorget",
+    "line": "92",
+    "mode": "bus",
+    "direction": "in",
+    "destination": "Stortorvet",
+    "times": [
+     {
+      "time": "17:13",
+      "realtime": true,
+      "cancelled": false,
+      "late": false
+     },
+     {
+      "time": "17:17",
+      "realtime": true,
+      "cancelled": false,
+      "late": false
+     },
+     {
+      "time": "17:21",
+      "realtime": true,
+      "cancelled": false,
+      "late": false
+     }
+    ],
+    "notice": false
+   },
+   {
+    "stop": "Stortorvet",
+    "line": "30",
+    "mode": "bus",
+    "direction": "in",
+    "destination": "Bygdøy",
+    "times": [
+     {
+      "time": "17:19",
+      "realtime": true,
+      "cancelled": false,
+      "late": true
+     },
+     {
+      "time": "17:27",
+      "realtime": true,
+      "cancelled": false,
+      "late": false
+     },
+     {
+      "time": "17:37",
+      "realtime": true,
+      "cancelled": false,
+      "late": false
+     }
+    ],
+    "notice": false
+   },
+   {
+    "stop": "Stortorvet",
+    "line": "30",
+    "mode": "bus",
+    "direction": "out",
+    "destination": "Nydalen",
+    "times": [
+     {
+      "time": "17:16",
+      "realtime": true,
+      "cancelled": false,
+      "late": true
+     },
+     {
+      "time": "17:21",
+      "realtime": true,
+      "cancelled": false,
+      "late": false
+     },
+     {
+      "time": "17:33",
+      "realtime": true,
+      "cancelled": false,
+      "late": true
+     }
+    ],
+    "notice": false
+   },
+   {
+    "stop": "Kirkeristen",
+    "line": "12",
+    "mode": "tram",
+    "direction": "out",
+    "destination": "Kjelsås",
+    "times": [
+     {
+      "time": "17:12",
+      "realtime": true,
+      "cancelled": false,
+      "late": false
+     },
+     {
+      "time": "17:27",
+      "realtime": false,
+      "cancelled": false,
+      "late": false
+     },
+     {
+      "time": "17:42",
+      "realtime": false,
+      "cancelled": false,
+      "late": false
+     }
+    ],
+    "notice": true
+   },
+   {
+    "stop": "Kirkeristen",
+    "line": "15",
+    "mode": "tram",
+    "direction": "out",
+    "destination": "Kjelsås",
+    "times": [
+     {
+      "time": "17:19",
+      "realtime": false,
+      "cancelled": false,
+      "late": false
+     },
+     {
+      "time": "17:34",
+      "realtime": false,
+      "cancelled": false,
+      "late": false
+     },
+     {
+      "time": "17:49",
+      "realtime": false,
+      "cancelled": false,
+      "late": false
+     }
+    ],
+    "notice": true
+   }
+  ],
+  "notices": [
+   {
+    "lines": [
+     {
+      "code": "12",
+      "mode": "tram"
+     },
+     {
+      "code": "15",
+      "mode": "tram"
+     }
+    ],
+    "summary": "Tram 12 and 15 are not running between Stortinget and Kirkeristen.",
+    "description": "Due to a switch replacement at Kirkeristen, the trams only run between Majorstuen and Stortinget, as well as between Kjelsås and a temporary stop at Korsgata at the bottom of Thorvald Meyers gate.",
+    "until": "10 Oct"
+   },
+   {
+    "lines": [
+     {
+      "code": "17",
+      "mode": "tram"
+     }
+    ],
+    "summary": "Tram replacement buses between Jernbanetorget and Stortorvet Monday–Friday",
+    "description": "The buses operate in addition to regular line 17 services, from 06:30 to 09:00 towards Stortorvet and from 14:30 to 18:00 towards Jernbanetorget.",
+    "until": "9 Oct"
+   }
+  ],
+  "gothic": {
+   "feels": 17,
+   "outlook": {
+    "now": "partly-day",
+    "later": "cloudy"
+   },
+   "columns": [
+    {
+     "lines": [
+      "17"
+     ],
+     "direction": "in",
+     "times": [
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "17:12",
+       "realtime": true,
+       "cancelled": false,
+       "late": true
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "17:25",
+       "realtime": true,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "17:40",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "17:55",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "18:10",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "18:25",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "18:40",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "18:55",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      }
+     ]
+    },
+    {
+     "lines": [
+      "17"
+     ],
+     "direction": "out",
+     "times": [
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "17:22",
+       "realtime": true,
+       "cancelled": false,
+       "late": true
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "17:35",
+       "realtime": true,
+       "cancelled": true,
+       "late": false
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "17:50",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "18:05",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "18:20",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "18:35",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "18:50",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "17",
+       "mode": "tram",
+       "time": "19:05",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      }
+     ]
+    },
+    {
+     "lines": [
+      "12",
+      "15",
+      "30",
+      "92"
+     ],
+     "direction": "in",
+     "times": [
+      {
+       "line": "92",
+       "mode": "bus",
+       "time": "17:13",
+       "realtime": true,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "92",
+       "mode": "bus",
+       "time": "17:17",
+       "realtime": true,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "30",
+       "mode": "bus",
+       "time": "17:19",
+       "realtime": true,
+       "cancelled": false,
+       "late": true
+      },
+      {
+       "line": "92",
+       "mode": "bus",
+       "time": "17:21",
+       "realtime": true,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "92",
+       "mode": "bus",
+       "time": "17:25",
+       "realtime": true,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "30",
+       "mode": "bus",
+       "time": "17:27",
+       "realtime": true,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "30",
+       "mode": "bus",
+       "time": "17:37",
+       "realtime": true,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "30",
+       "mode": "bus",
+       "time": "17:47",
+       "realtime": true,
+       "cancelled": false,
+       "late": false
+      }
+     ]
+    },
+    {
+     "lines": [
+      "12",
+      "15",
+      "30",
+      "92"
+     ],
+     "direction": "out",
+     "times": [
+      {
+       "line": "12",
+       "mode": "tram",
+       "time": "17:12",
+       "realtime": true,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "30",
+       "mode": "bus",
+       "time": "17:16",
+       "realtime": true,
+       "cancelled": false,
+       "late": true
+      },
+      {
+       "line": "15",
+       "mode": "tram",
+       "time": "17:19",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "30",
+       "mode": "bus",
+       "time": "17:21",
+       "realtime": true,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "12",
+       "mode": "tram",
+       "time": "17:27",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "30",
+       "mode": "bus",
+       "time": "17:33",
+       "realtime": true,
+       "cancelled": false,
+       "late": true
+      },
+      {
+       "line": "15",
+       "mode": "tram",
+       "time": "17:34",
+       "realtime": false,
+       "cancelled": false,
+       "late": false
+      },
+      {
+       "line": "30",
+       "mode": "bus",
+       "time": "17:41",
+       "realtime": true,
+       "cancelled": false,
+       "late": false
+      }
+     ]
+    }
+   ]
+  },
+  "stale": {
+   "transit": null,
+   "weather": null
+  }
+ },
+ "drawnAt": "17:07",
+ "mode": "notices"
+}
